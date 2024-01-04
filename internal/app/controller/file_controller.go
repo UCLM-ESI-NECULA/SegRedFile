@@ -6,6 +6,7 @@ import (
 	"seg-red-file/internal/app/common"
 	"seg-red-file/internal/app/repository"
 	"seg-red-file/internal/app/service"
+	"seg-red-file/internal/dao"
 
 	"github.com/gin-gonic/gin"
 )
@@ -39,69 +40,112 @@ func (fc *FileControllerImpl) RegisterRoutes(router *gin.RouterGroup) {
 }
 
 func (fc *FileControllerImpl) GetFile(c *gin.Context) {
-	username, docID := checkParams(c)
-	content, err := fc.svc.GetFile(username, docID)
-	if err != nil {
-		common.NewAPIError(c, http.StatusNotFound, err, "file not found")
+	// Check username and docID
+	username, docID, apiErr := checkParams(c)
+	if apiErr != nil {
+		common.ForwardError(c, apiErr)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"content": content})
+
+	content, err := fc.svc.GetFile(username, docID)
+	if err != nil {
+		common.HandleError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, dao.FileContent{Content: content})
 }
 
 func (fc *FileControllerImpl) CreateFile(c *gin.Context) {
-	username, docID := checkParams(c)
-
-	requestBody, err := io.ReadAll(c.Request.Body)
-	if err != nil {
-		common.NewAPIError(c, http.StatusBadRequest, err, "invalid request body")
+	// Check username and docID
+	username, docID, apiErr := checkParams(c)
+	if apiErr != nil {
+		common.ForwardError(c, apiErr)
 		return
 	}
 
-	size := fc.svc.CreateFile(username, docID, requestBody)
-	c.JSON(http.StatusOK, gin.H{"size": size})
+	//ReadBody
+	requestBody, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		common.ForwardError(c, common.BadRequestError("invalid request body"))
+		return
+	}
+
+	size, err := fc.svc.CreateFile(username, docID, requestBody)
+	if err != nil {
+		common.HandleError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, dao.FileSize{Size: size})
 }
 
 func (fc *FileControllerImpl) UpdateFile(c *gin.Context) {
-	username, docID := checkParams(c)
-	requestBody, err := io.ReadAll(c.Request.Body)
-	if err != nil {
-		common.NewAPIError(c, http.StatusBadRequest, err, "invalid request body")
+	// Check username and docID
+	username, docID, apiErr := checkParams(c)
+	if apiErr != nil {
+		common.ForwardError(c, apiErr)
 		return
 	}
 
-	size := fc.svc.UpdateFile(username, docID, requestBody)
-	c.JSON(http.StatusOK, gin.H{"size": size})
+	//ReadBody
+	requestBody, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		common.ForwardError(c, common.BadRequestError("invalid request body"))
+		return
+	}
+
+	size, err := fc.svc.UpdateFile(username, docID, requestBody)
+	if err != nil {
+		common.HandleError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, dao.FileSize{Size: size})
 }
 
 func (fc *FileControllerImpl) DeleteFile(c *gin.Context) {
-	username, docID := checkParams(c)
+	// Check username and docID
+	username, docID, apiErr := checkParams(c)
+	if apiErr != nil {
+		common.ForwardError(c, apiErr)
+		return
+	}
+
 	err := fc.svc.DeleteFile(username, docID)
 	if err != nil {
-		common.NewAPIError(c, http.StatusNotFound, err, err.Error())
+		common.HandleError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{})
 }
 
 func (fc *FileControllerImpl) GetAllUserDocs(c *gin.Context) {
+	// Check username
 	username := c.Param("username")
 	if username == "" {
-		common.NewAPIError(c, http.StatusBadRequest, nil, "username cannot be empty")
+		common.ForwardError(c, common.EmptyParamsError("username"))
 		return
 	}
-	docs := fc.svc.GetAllUserDocs(username)
+
+	docs, errors := fc.svc.GetAllUserDocs(username)
+	if errors != nil {
+		common.HandleError(c, errors)
+		return
+	}
 	if docs == nil {
-		docs = make(map[string]string)
+		m := make(map[string]string)
+		docs = &m
 	}
 	c.JSON(http.StatusOK, docs)
 }
 
 // checkParams checks if the username and docID are valid
-func checkParams(c *gin.Context) (string, string) {
+func checkParams(c *gin.Context) (string, string, *common.APIError) {
 	username := c.Param("username")
-	docID := c.Param("doc_id")
-	if username == "" || docID == "" {
-		common.NewAPIError(c, http.StatusBadRequest, nil, "invalid input parameters")
+	if username == "" {
+		return "", "", common.EmptyParamsError("username")
 	}
-	return username, docID
+	docID := c.Param("doc_id")
+	if docID == "" {
+		return "", "", common.EmptyParamsError("doc_id")
+	}
+	return username, docID, nil
 }

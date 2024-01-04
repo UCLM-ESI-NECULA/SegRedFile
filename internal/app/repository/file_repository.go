@@ -20,7 +20,7 @@ type FileRepository interface {
 	CreateFile(username, docID string, content []byte) (int, error)
 	UpdateFile(username, docID string, content []byte) (int, error)
 	DeleteFile(username, docID string) error
-	GetAllUserDocs(username string) (map[string]string, error)
+	GetAllUserDocs(username string) (*map[string]string, error)
 }
 
 // UTILS
@@ -49,7 +49,7 @@ func (fr *FileRepositoryImpl) GetFile(username, docID string) (string, error) {
 	return string(content), nil
 }
 
-func (fr *FileRepositoryImpl) GetAllUserDocs(username string) (map[string]string, error) {
+func (fr *FileRepositoryImpl) GetAllUserDocs(username string) (*map[string]string, error) {
 	userFolderPath := filepath.Join(fr.baseDir, username)
 	files, err := os.ReadDir(userFolderPath)
 	if err != nil {
@@ -68,7 +68,7 @@ func (fr *FileRepositoryImpl) GetAllUserDocs(username string) (map[string]string
 		}
 	}
 
-	return userDocs, nil
+	return &userDocs, nil
 }
 
 //READ/WRITE
@@ -101,7 +101,7 @@ func (fr *FileRepositoryImpl) DeleteFile(username, docID string) error {
 		return fmt.Errorf("error deleting file: %v", err)
 	}
 
-	dirPath := fr.directoryPath(username) // Assuming you have a method to get the directory path
+	dirPath := fr.directoryPath(username)
 	files, err := os.ReadDir(dirPath)
 	if err != nil {
 		return fmt.Errorf("error reading directory: %v", err)

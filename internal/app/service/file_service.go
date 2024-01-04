@@ -14,10 +14,10 @@ func NewFileService(repo repository.FileRepository) *FileServiceImpl {
 
 type FileService interface {
 	GetFile(username, docID string) (string, error)
-	CreateFile(username, docID string, content []byte) int
-	UpdateFile(username, docID string, content []byte) int
+	CreateFile(username, docID string, content []byte) (int, error)
+	UpdateFile(username, docID string, content []byte) (int, error)
 	DeleteFile(username, docID string) error
-	GetAllUserDocs(username string) map[string]string
+	GetAllUserDocs(username string) (*map[string]string, error)
 }
 
 func (fs *FileServiceImpl) GetFile(username, docID string) (string, error) {
@@ -25,25 +25,30 @@ func (fs *FileServiceImpl) GetFile(username, docID string) (string, error) {
 	return content, err
 }
 
-func (fs *FileServiceImpl) CreateFile(username, docID string, content []byte) int {
+func (fs *FileServiceImpl) CreateFile(username, docID string, content []byte) (int, error) {
 	size, err := fs.repo.CreateFile(username, docID, content)
 	if err != nil {
-		// Handle specific errors (e.g., write errors, permission issues)
-		return 0
+		return 0, err
 	}
-	return size
+	return size, nil
 }
 
-func (fs *FileServiceImpl) UpdateFile(username, docID string, content []byte) int {
-	size, _ := fs.repo.UpdateFile(username, docID, content)
-	return size
+func (fs *FileServiceImpl) UpdateFile(username, docID string, content []byte) (int, error) {
+	size, err := fs.repo.UpdateFile(username, docID, content)
+	if err != nil {
+		return 0, err
+	}
+	return size, nil
 }
 
 func (fs *FileServiceImpl) DeleteFile(username, docID string) error {
 	return fs.repo.DeleteFile(username, docID)
 }
 
-func (fs *FileServiceImpl) GetAllUserDocs(username string) map[string]string {
-	docs, _ := fs.repo.GetAllUserDocs(username)
-	return docs
+func (fs *FileServiceImpl) GetAllUserDocs(username string) (*map[string]string, error) {
+	docs, err := fs.repo.GetAllUserDocs(username)
+	if err != nil {
+		return nil, err
+	}
+	return docs, nil
 }
