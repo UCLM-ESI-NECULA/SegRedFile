@@ -14,9 +14,11 @@ type FileControllerImpl struct {
 	svc service.FileService
 }
 
-func NewFileController() *FileControllerImpl {
-	return &FileControllerImpl{
+func NewFileController(g *gin.RouterGroup) *FileControllerImpl {
+	c := &FileControllerImpl{
 		svc: service.NewFileService(repository.NewFileRepository(""))}
+	c.RegisterRoutes(g)
+	return c
 }
 
 type FileController interface {

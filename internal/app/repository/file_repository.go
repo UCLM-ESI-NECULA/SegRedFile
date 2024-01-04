@@ -79,7 +79,7 @@ func (fr *FileRepositoryImpl) CreateFile(username, docID string, content []byte)
 	}
 
 	filePath := fr.filePath(username, docID)
-	err := os.WriteFile(filePath, []byte(content), 0644)
+	err := os.WriteFile(filePath, content, 0644)
 	if err != nil {
 		return 0, fmt.Errorf("error writing file: %v", err)
 	}
