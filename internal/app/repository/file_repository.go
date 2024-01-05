@@ -45,7 +45,7 @@ func (fr *FileRepositoryImpl) GetFile(username, docID string) (string, error) {
 	filePath := fr.filePath(username, docID)
 	content, err := os.ReadFile(filePath)
 	if err != nil {
-		return "", fmt.Errorf("error reading the file: %v", err)
+		return "", common.BadRequestError("error reading file: " + err.Error())
 	}
 	return string(content), nil
 }
@@ -54,7 +54,7 @@ func (fr *FileRepositoryImpl) GetAllUserDocs(username string) (*map[string]strin
 	userFolderPath := filepath.Join(fr.baseDir, username)
 	files, err := os.ReadDir(userFolderPath)
 	if err != nil {
-		return nil, fmt.Errorf("error reading directory: %v", err)
+		return nil, common.BadRequestError("error reading directory: " + err.Error())
 	}
 
 	userDocs := make(map[string]string)
@@ -63,7 +63,7 @@ func (fr *FileRepositoryImpl) GetAllUserDocs(username string) (*map[string]strin
 			docID := file.Name()
 			content, err := os.ReadFile(filepath.Join(userFolderPath, docID))
 			if err != nil {
-				return nil, fmt.Errorf("error reading file: %v", err)
+				return nil, common.BadRequestError("error reading file: " + err.Error())
 			}
 			userDocs[docID] = string(content)
 		}
