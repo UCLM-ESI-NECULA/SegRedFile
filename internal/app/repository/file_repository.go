@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"seg-red-file/internal/app/common"
 )
 
 type FileRepositoryImpl struct {
@@ -79,6 +80,11 @@ func (fr *FileRepositoryImpl) CreateFile(username, docID string, content []byte)
 	}
 
 	filePath := fr.filePath(username, docID)
+
+	// Check if file already exists
+	if _, err := os.Stat(filePath); err == nil {
+		return 0, common.BadRequestError("file with name already exists: " + docID)
+	}
 	err := os.WriteFile(filePath, content, 0644)
 	if err != nil {
 		return 0, fmt.Errorf("error writing file: %v", err)
@@ -87,15 +93,26 @@ func (fr *FileRepositoryImpl) CreateFile(username, docID string, content []byte)
 }
 
 func (fr *FileRepositoryImpl) UpdateFile(username, docID string, content []byte) (int, error) {
-	size, err := fr.CreateFile(username, docID, content)
+	if err := fr.ensureUserFolderExists(username); err != nil {
+		return 0, fmt.Errorf("error creating user folder: %v", err)
+	}
+	filePath := fr.filePath(username, docID)
+	err := os.WriteFile(filePath, content, 0644)
 	if err != nil {
 		return 0, fmt.Errorf("error updating file: %v", err)
 	}
-	return size, nil
+	return len(content), nil
 }
 
 func (fr *FileRepositoryImpl) DeleteFile(username, docID string) error {
 	filePath := fr.filePath(username, docID)
+
+	// Check if file already exists
+	_, existingErr := os.Stat(filePath)
+	if os.IsNotExist(existingErr) {
+		return common.BadRequestError("file with name: " + docID + " does not exist")
+	}
+
 	err := os.Remove(filePath)
 	if err != nil {
 		return fmt.Errorf("error deleting file: %v", err)
