@@ -17,7 +17,7 @@ COPY go.sum ./
 RUN go mod download
 
 COPY . .
-COPY ./certs/mycert.crt ./certs/mycert.key ./
+COPY ./certs/file.crt ./certs/file.key ./
 
 # Build the app
 RUN go build -o /app/main ./cmd/app
